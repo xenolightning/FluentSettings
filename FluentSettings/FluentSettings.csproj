@@ -39,12 +39,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ISettingsEngine.cs" />
+    <Compile Include="Extensions\SettingEntryExtensions.cs" />
     <Compile Include="SettingConfiguration.cs" />
-    <Compile Include="Settings.cs" />
+    <Compile Include="Storage\ISettingStorage.cs" />
+    <Compile Include="SettingEntry.cs" />
+    <Compile Include="ConfigurationExpression.cs" />
+    <Compile Include="ISettingConfiguration.cs" />
+    <Compile Include="ISettingRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SettingsEngine.cs" />
+    <Compile Include="SettingRepository.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

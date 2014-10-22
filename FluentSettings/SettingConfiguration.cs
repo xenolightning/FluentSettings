@@ -1,68 +1,77 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace FluentSettings
 {
-    public class SettingConfiguration<T>
+    public sealed class SettingConfiguration<T> : ISettingConfiguration
     {
+        private readonly ISettingRepository _repository;
+        private readonly HashSet<ISettingEntry> _settings;
 
-        private HashSet<string> _properties;
-
-        public IEnumerable<string> Properties
-        {
-            get
-            {
-                return _properties;
-            }
-        }
-
-        public WeakReference TargetReference
+        public string Name
         {
             get;
             private set;
         }
 
-        public SettingConfiguration(T target)
+        public IEnumerable<ISettingEntry> Settings
         {
-            _properties = new HashSet<string>();
-            TargetReference = new WeakReference(target);
+            get { return _settings; }
         }
 
-        public SettingConfiguration<T> AddProperty(string name)
+        public Type ObjectType
         {
-            var pi = GetProperty(typeof(T), name);
-            if (pi != null)
-                _properties.Add(name);
+            get { return typeof(T); }
+        }
+
+        public SettingConfiguration(ISettingRepository repository)
+        {
+            _repository = repository;
+            _settings = new HashSet<ISettingEntry>();
+        }
+
+        public SettingConfiguration<T> Named(string name)
+        {
+            Name = name;
+            return this;
+        }
+
+        public SettingConfiguration<T> UsingDefaults()
+        {
+
+            return Configure(x =>
+            {
+                //Register the type with the default configuration options
+                foreach (var pi in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                {
+                    x.Add(pi).WithDefaultAccess();
+                }
+            });
+        }
+
+        public SettingConfiguration<T> Configure(Action<ConfigurationExpression<T>> configuration)
+        {
+            //Register with the configuration
+            var cfg = new ConfigurationExpression<T>();
+
+            configuration(cfg);
+            Configure(cfg);
 
             return this;
         }
 
-        public SettingConfiguration<T> AddProperty(Expression<Func<T, object>> property)
+        private void Configure(ConfigurationExpression<T> configurationExpression)
         {
-            var body = property.Body as UnaryExpression;
-            if (body == null || !(body.Operand is MemberExpression))
-                throw new ArgumentException("Invalid expression [" + property + "]", "property");
-
-            var name = (body.Operand as MemberExpression).Member.Name;
-
-            return AddProperty(name);
+            foreach (var e in configurationExpression.Entries)
+            {
+                _settings.Add(e);
+            }
         }
 
-        private static PropertyInfo GetProperty(Type t, string name)
+        public void Commit()
         {
-            var pi = t.GetProperty(name,
-                BindingFlags.GetProperty
-                | BindingFlags.SetProperty
-                | BindingFlags.Instance
-                | BindingFlags.Static
-                | BindingFlags.SetField
-                | BindingFlags.GetField);
-
-            return pi;
+            _repository.Add(this);
         }
 
     }
